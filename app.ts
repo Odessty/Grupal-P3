@@ -71,4 +71,89 @@ function poblarSelectLibros(lista: Libro[]): void {
         selectLibros.appendChild(option);
     });
 }
+// validacion y registro
+formPrestamo.addEventListener("submit", (e: Event) => {
+    e.preventDefault();
+    ocultarError();
+
+    const nombreEstudiante: string = inputEstudiante.value.trim();
+    const codigoSeleccionado: number = Number(selectLibros.value);
+    const cantidad: number = Number(inputCantidad.value);
+
+    // Validación 1: Estudiante vacío
+    if (nombreEstudiante === "") {
+        mostrarError("Debe ingresar el nombre del estudiante.");
+        return;
+    }
+
+    // Validación 2: Libro no seleccionado
+    if (!selectLibros.value || isNaN(codigoSeleccionado)) {
+        mostrarError("Debe seleccionar un libro.");
+        return;
+    }
+
+    // Búsqueda del libro
+    const libroEncontrado: Libro | undefined = libros.find(l => l.codigo === codigoSeleccionado);
+    if (!libroEncontrado) {
+        mostrarError("El libro seleccionado no es válido.");
+        return;
+    }
+
+    // Validación 3: Cantidad menor o igual a cero
+    if (isNaN(cantidad) || cantidad <= 0) {
+        mostrarError("La cantidad debe ser mayor que cero.");
+        return;
+    }
+
+    // Validación 4: Cantidad mayor que el stock disponible
+    if (cantidad > libroEncontrado.stock) {
+        mostrarError("La cantidad solicitada supera los ejemplares disponibles.");
+        return;
+    }
+
+    // Procesar préstamo si las validaciones pasan
+    const nuevoPrestamo: Prestamo = {
+        codigoLibro: libroEncontrado.codigo,
+        titulo: libroEncontrado.titulo,
+        estudiante: nombreEstudiante,
+        cantidad: cantidad
+    };
+
+    // Actualizar Stock
+    libroEncontrado.stock -= cantidad;
+    poblarSelectLibros(libros);
+
+    // Registrar y renderizar
+    prestamos.push(nuevoPrestamo);
+    agregarFilaTabla(nuevoPrestamo);
+
+    // Actualizar Totales y LocalStorage
+    actualizarAcumuladoresYStorage(nuevoPrestamo);
+
+    // Limpiar Formulario
+    formPrestamo.reset();
+});
+// manejo dom y tabla
+function agregarFilaTabla(p: Prestamo): void {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+        <td>${p.codigoLibro}</td>
+        <td>${p.titulo}</td>
+        <td>${p.estudiante}</td>
+        <td>${p.cantidad}</td>
+    `;
+
+    tbodyPrestamos.appendChild(tr);
+}
+
+function mostrarError(mensaje: string): void {
+    alertBox.textContent = mensaje;
+    alertBox.classList.remove("hidden");
+}
+
+function ocultarError(): void {
+    alertBox.textContent = "";
+    alertBox.classList.add("hidden");
+}
 
