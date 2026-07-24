@@ -1,0 +1,27 @@
+[
+  {
+    "codigoLibro": "BX-001",
+    "titulo": "HARRY POTTER",
+    "disponibles": 5
+  },
+  {
+    "codigoLibro": "MEMES XD",
+    "titulo": "TypeScript a Fondo",
+    "disponibles": 3
+  },
+  {
+    "codigoLibro": "BX-003",
+    "titulo": "LA ODISEA",
+    "disponibles": 8
+  },
+  {
+    "codigoLibro": "BX-004",
+    "titulo": "Narnia",
+    "disponibles": 4
+  },
+  {
+    "codigoLibro": "BX-005",
+    "titulo": "Fabulas de isopo xd",
+    "disponibles": 6
+  }
+]
