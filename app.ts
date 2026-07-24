@@ -157,3 +157,45 @@ function ocultarError(): void {
     alertBox.classList.add("hidden");
 }
 
+// ==========================================
+// 6. ACUMULADORES Y LOCAL STORAGE
+// ==========================================
+function actualizarAcumuladoresYStorage(ultimoPrestamo: Prestamo): void {
+    totalPrestamosCount += 1;
+    totalEjemplaresCount += ultimoPrestamo.cantidad;
+
+    // Actualizar vista
+    txtTotalPrestamos.textContent = totalPrestamosCount.toString();
+    txtTotalEjemplares.textContent = totalEjemplaresCount.toString();
+    txtUltimoLibro.textContent = ultimoPrestamo.titulo;
+    txtUltimoEstudiante.textContent = ultimoPrestamo.estudiante;
+
+    // Guardar en LocalStorage
+    const resumen: ResumenLocalStorage = {
+        totalPrestamos: totalPrestamosCount,
+        totalEjemplares: totalEjemplaresCount,
+        ultimoLibro: ultimoPrestamo.titulo,
+        ultimoEstudiante: ultimoPrestamo.estudiante
+    };
+
+    localStorage.setItem("resumenBiblioteca", JSON.stringify(resumen));
+}
+
+function recuperarResumenLocalStorage(): void {
+    const dataGuardada = localStorage.getItem("resumenBiblioteca");
+    if (!dataGuardada) return;
+
+    try {
+        const resumen: ResumenLocalStorage = JSON.parse(dataGuardada);
+
+        totalPrestamosCount = resumen.totalPrestamos || 0;
+        totalEjemplaresCount = resumen.totalEjemplares || 0;
+
+        txtTotalPrestamos.textContent = totalPrestamosCount.toString();
+        txtTotalEjemplares.textContent = totalEjemplaresCount.toString();
+        txtUltimoLibro.textContent = resumen.ultimoLibro || "Ninguno";
+        txtUltimoEstudiante.textContent = resumen.ultimoEstudiante || "Ninguno";
+    } catch (e) {
+        console.error("Error al parsear LocalStorage", e);
+    }
+}
