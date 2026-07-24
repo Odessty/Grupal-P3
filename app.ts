@@ -1,7 +1,10 @@
+// ==========================================
+// 1. INTERFACES
+// ==========================================
 interface Libro {
-    codigoLibro: number;
+    codigo: number;
     titulo: string;
-    disponibles: number;
+    stock: number;
 }
 
 interface Prestamo {
@@ -11,14 +14,15 @@ interface Prestamo {
     cantidad: number;
 }
 
-//Variables y Estado 
+// ==========================================
+// 2. VARIABLES GLOBALES
+// ==========================================
 let libros: Libro[] = [];
-let prestamos: Prestamo[] = [];
 
-let totalPrestamosCount: number = 0;
-let totalEjemplaresCount: number = 0;
+let totalPrestamos: number = 0;
+let totalEjemplares: number = 0;
 
-// Referencias al DOM
+// Elementos del HTML (DOM)
 const selectLibros = document.getElementById("selectLibros") as HTMLSelectElement;
 const inputEstudiante = document.getElementById("estudiante") as HTMLInputElement;
 const inputCantidad = document.getElementById("cantidad") as HTMLInputElement;
@@ -26,176 +30,190 @@ const formPrestamo = document.getElementById("loanForm") as HTMLFormElement;
 const alertBox = document.getElementById("alertBox") as HTMLDivElement;
 const tbodyPrestamos = document.getElementById("tbodyPrestamos") as HTMLTableSectionElement;
 
-// Elementos de Resumen
+// Elementos del Resumen
 const txtTotalPrestamos = document.getElementById("totalPrestamos") as HTMLSpanElement;
 const txtTotalEjemplares = document.getElementById("totalEjemplares") as HTMLSpanElement;
 const txtUltimoLibro = document.getElementById("ultimoLibro") as HTMLSpanElement;
 const txtUltimoEstudiante = document.getElementById("ultimoEstudiante") as HTMLSpanElement;
 
-//AJAX
-
-document.addEventListener("DOMContentLoaded", () => {
-    recuperarResumenLocalStorage();
-    cargarLibrosAjax();
+// ==========================================
+// 3. INICIO Y CÁRGA AJAX
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    cargarResumenLocalStorage();
+    obtenerLibrosAjax();
 });
 
-// Carga de libros mediante solicitud AJAX (Fetch API)
-function cargarLibrosAjax(): void {
-    const jsonSimulado = JSON.stringify([
+// Carga AJAX utilizando fetch
+function obtenerLibrosAjax(): void {
+    const datosLibros = [
         { codigo: 101, titulo: "Desarrollo Web con TypeScript", stock: 5 },
         { codigo: 102, titulo: "Estructuras de Datos y Algoritmos", stock: 3 },
         { codigo: 103, titulo: "Patrones de Diseño", stock: 2 },
         { codigo: 104, titulo: "Bases de Datos Relacionales", stock: 4 }
-    ]);
+    ];
 
-    const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(jsonSimulado);
+    // Simulación de respuesta JSON vía AJAX
+    const jsonURL = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosLibros));
 
-    fetch(dataUri)
-        .then((response: Response) => response.json())
-        .then((data: Libro[]) => {
-            libros = data;
-            poblarSelectLibros(libros);
+    fetch(jsonURL)
+        .then(function(respuesta) {
+            return respuesta.json();
         })
-        .catch((error: any) => {
-            mostrarError("Error al cargar la lista de libros mediante AJAX.");
-            console.error(error);
+        .then(function(data: Libro[]) {
+            libros = data;
+            llenarSelectLibros();
+        })
+        .catch(function(error) {
+            mostrarMensajeError("Error al cargar la lista de libros mediante AJAX.");
         });
 }
 
-function poblarSelectLibros(lista: Libro[]): void {
+function llenarSelectLibros(): void {
     selectLibros.innerHTML = '<option value="">-- Seleccione un libro --</option>';
-    lista.forEach((libro: Libro) => {
-        const option = document.createElement("option");
-        option.value = libro.codigo.toString();
-        option.textContent = ${libro.titulo} (Disponibles: ${libro.stock});
-        selectLibros.appendChild(option);
-    });
+    
+    for (let i = 0; i < libros.length; i++) {
+        const libro = libros[i];
+        const opcion = document.createElement("option");
+        opcion.value = libro.codigo.toString();
+        opcion.textContent = libro.titulo + " (Disponibles: " + libro.stock + ")";
+        selectLibros.appendChild(opcion);
+    }
 }
-// validacion y registro
-formPrestamo.addEventListener("submit", (e: Event) => {
-    e.preventDefault();
-    ocultarError();
 
-    const nombreEstudiante: string = inputEstudiante.value.trim();
-    const codigoSeleccionado: number = Number(selectLibros.value);
-    const cantidad: number = Number(inputCantidad.value);
+// ==========================================
+// 4. REGISTRO Y VALIDACIONES
+// ==========================================
+formPrestamo.addEventListener("submit", function(evento) {
+    evento.preventDefault();
+    ocultarMensajeError();
 
-    // Validación 1: Estudiante vacío
-    if (nombreEstudiante === "") {
-        mostrarError("Debe ingresar el nombre del estudiante.");
+    const estudiante = inputEstudiante.value.trim();
+    const codigoSeleccionado = Number(selectLibros.value);
+    const cantidad = Number(inputCantidad.value);
+
+    // Validacion 1: Estudiante vacio
+    if (estudiante === "") {
+        mostrarMensajeError("Debe ingresar el nombre del estudiante.");
         return;
     }
 
-    // Validación 2: Libro no seleccionado
+    // Validacion 2: Libro no seleccionado
     if (!selectLibros.value || isNaN(codigoSeleccionado)) {
-        mostrarError("Debe seleccionar un libro.");
+        mostrarMensajeError("Debe seleccionar un libro.");
         return;
     }
 
-    // Búsqueda del libro
-    const libroEncontrado: Libro | undefined = libros.find(l => l.codigo === codigoSeleccionado);
+    // Buscar libro seleccionado en el arreglo
+    let libroEncontrado: Libro | undefined;
+    for (let i = 0; i < libros.length; i++) {
+        if (libros[i].codigo === codigoSeleccionado) {
+            libroEncontrado = libros[i];
+            break;
+        }
+    }
+
     if (!libroEncontrado) {
-        mostrarError("El libro seleccionado no es válido.");
+        mostrarMensajeError("El libro seleccionado no es válido.");
         return;
     }
 
-    // Validación 3: Cantidad menor o igual a cero
+    // Validacion 3: Cantidad menor o igual a cero
     if (isNaN(cantidad) || cantidad <= 0) {
-        mostrarError("La cantidad debe ser mayor que cero.");
+        mostrarMensajeError("La cantidad debe ser mayor que cero.");
         return;
     }
 
-    // Validación 4: Cantidad mayor que el stock disponible
+    // Validacion 4: Cantidad mayor al stock
     if (cantidad > libroEncontrado.stock) {
-        mostrarError("La cantidad solicitada supera los ejemplares disponibles.");
+        mostrarMensajeError("La cantidad solicitada supera los ejemplares disponibles.");
         return;
     }
 
-    // Procesar préstamo si las validaciones pasan
+    // Si pasa las validaciones, creamos el préstamo
     const nuevoPrestamo: Prestamo = {
         codigoLibro: libroEncontrado.codigo,
         titulo: libroEncontrado.titulo,
-        estudiante: nombreEstudiante,
+        estudiante: estudiante,
         cantidad: cantidad
     };
 
-    // Actualizar Stock
-    libroEncontrado.stock -= cantidad;
-    poblarSelectLibros(libros);
+    // Actualizar el stock del libro
+    libroEncontrado.stock = libroEncontrado.stock - cantidad;
+    llenarSelectLibros();
 
-    // Registrar y renderizar
-    prestamos.push(nuevoPrestamo);
+    // Agregar la fila a la tabla
     agregarFilaTabla(nuevoPrestamo);
 
-    // Actualizar Totales y LocalStorage
-    actualizarAcumuladoresYStorage(nuevoPrestamo);
+    // Actualizar acumuladores y guardar en LocalStorage
+    guardarEnLocalStorage(nuevoPrestamo);
 
-    // Limpiar Formulario
+    // Limpiar formulario
     formPrestamo.reset();
 });
-// manejo dom y tabla
-function agregarFilaTabla(p: Prestamo): void {
-    const tr = document.createElement("tr");
 
-    tr.innerHTML = `
+// ==========================================
+// 5. MANIPULACIÓN DEL DOM (TABLA Y MENSAJES)
+// ==========================================
+function agregarFilaTabla(p: Prestamo): void {
+    const fila = document.createElement("tr");
+
+    fila.innerHTML = `
         <td>${p.codigoLibro}</td>
         <td>${p.titulo}</td>
         <td>${p.estudiante}</td>
         <td>${p.cantidad}</td>
     `;
 
-    tbodyPrestamos.appendChild(tr);
+    tbodyPrestamos.appendChild(fila);
 }
 
-function mostrarError(mensaje: string): void {
+function mostrarMensajeError(mensaje: string): void {
     alertBox.textContent = mensaje;
-    alertBox.classList.remove("hidden");
+    alertBox.classList.remove("d-none");
 }
 
-function ocultarError(): void {
+function ocultarMensajeError(): void {
     alertBox.textContent = "";
-    alertBox.classList.add("hidden");
+    alertBox.classList.add("d-none");
 }
 
 // ==========================================
 // 6. ACUMULADORES Y LOCAL STORAGE
 // ==========================================
-function actualizarAcumuladoresYStorage(ultimoPrestamo: Prestamo): void {
-    totalPrestamosCount += 1;
-    totalEjemplaresCount += ultimoPrestamo.cantidad;
+function guardarEnLocalStorage(p: Prestamo): void {
+    totalPrestamos = totalPrestamos + 1;
+    totalEjemplares = totalEjemplares + p.cantidad;
 
-    // Actualizar vista
-    txtTotalPrestamos.textContent = totalPrestamosCount.toString();
-    txtTotalEjemplares.textContent = totalEjemplaresCount.toString();
-    txtUltimoLibro.textContent = ultimoPrestamo.titulo;
-    txtUltimoEstudiante.textContent = ultimoPrestamo.estudiante;
+    // Actualizar en pantalla
+    txtTotalPrestamos.textContent = totalPrestamos.toString();
+    txtTotalEjemplares.textContent = totalEjemplares.toString();
+    txtUltimoLibro.textContent = p.titulo;
+    txtUltimoEstudiante.textContent = p.estudiante;
 
-    // Guardar en LocalStorage
-    const resumen: ResumenLocalStorage = {
-        totalPrestamos: totalPrestamosCount,
-        totalEjemplares: totalEjemplaresCount,
-        ultimoLibro: ultimoPrestamo.titulo,
-        ultimoEstudiante: ultimoPrestamo.estudiante
+    // Guardar objeto en LocalStorage
+    const resumen = {
+        totalPrestamos: totalPrestamos,
+        totalEjemplares: totalEjemplares,
+        ultimoLibro: p.titulo,
+        ultimoEstudiante: p.estudiante
     };
 
     localStorage.setItem("resumenBiblioteca", JSON.stringify(resumen));
 }
 
-function recuperarResumenLocalStorage(): void {
-    const dataGuardada = localStorage.getItem("resumenBiblioteca");
-    if (!dataGuardada) return;
+function cargarResumenLocalStorage(): void {
+    const datosGuardados = localStorage.getItem("resumenBiblioteca");
 
-    try {
-        const resumen: ResumenLocalStorage = JSON.parse(dataGuardada);
+    if (datosGuardados !== null) {
+        const resumen = JSON.parse(datosGuardados);
 
-        totalPrestamosCount = resumen.totalPrestamos || 0;
-        totalEjemplaresCount = resumen.totalEjemplares || 0;
+        totalPrestamos = resumen.totalPrestamos || 0;
+        totalEjemplares = resumen.totalEjemplares || 0;
 
-        txtTotalPrestamos.textContent = totalPrestamosCount.toString();
-        txtTotalEjemplares.textContent = totalEjemplaresCount.toString();
+        txtTotalPrestamos.textContent = totalPrestamos.toString();
+        txtTotalEjemplares.textContent = totalEjemplares.toString();
         txtUltimoLibro.textContent = resumen.ultimoLibro || "Ninguno";
         txtUltimoEstudiante.textContent = resumen.ultimoEstudiante || "Ninguno";
-    } catch (e) {
-        console.error("Error al parsear LocalStorage", e);
     }
 }
