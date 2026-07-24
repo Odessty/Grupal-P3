@@ -1,0 +1,8 @@
+/* Estilos adicionales mínimos para complementar Bootstrap */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
